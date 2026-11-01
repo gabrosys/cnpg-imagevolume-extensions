@@ -1,0 +1,12 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: demo-app
+spec:
+  cluster:
+    name: demo
+  name: app
+  owner: app
+  extensions:
+    - name: edb_wait_states
+      ensure: present

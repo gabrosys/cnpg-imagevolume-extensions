@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-custom-queries
+  labels:
+    cnpg.io/reload: ""
+data:
+  queries.yaml: |
+    edb_wait_states:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'edb_wait_states')
+      query: |
+        SELECT
+          dbname AS datname,
+          wait_event_type,
+          wait_event,
+          count(*)::bigint AS samples
+        FROM edb_wait_states_data(now() - interval '5 minutes', now())
+        WHERE wait_event IS NOT NULL
+        GROUP BY 1, 2, 3
+      target_databases:
+        - app
+      metrics:
+        - datname:
+            usage: "LABEL"
+            description: "Database name"
+        - wait_event_type:
+            usage: "LABEL"
+            description: "Wait event type, for example Timeout, Lock or IO"
+        - wait_event:
+            usage: "LABEL"
+            description: "Wait event, for example PgSleep"
+        - samples:
+            usage: "GAUGE"
+            description: "edb_wait_states samples with this wait event over the last 5 minutes (not monotonic: the window slides)"

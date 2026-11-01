@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: demo-load
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: load
+          image: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            runAsNonRoot: true
+            seccompProfile: { type: RuntimeDefault }
+          env:
+            - { name: PGHOST, value: demo-rw }
+            - { name: PGUSER, value: app }
+            - { name: PGDATABASE, value: app }
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: { name: demo-app, key: password }
+          command:
+            - sh
+            - -c
+            - |
+              for s in 1 2 3 4; do
+                (
+                  i=0
+                  while [ "$i" -lt 15 ]; do
+                    psql -Atc "SELECT pg_sleep(1)" >/dev/null || exit 1
+                    i=$((i + 1))
+                  done
+                ) &
+              done
+              wait

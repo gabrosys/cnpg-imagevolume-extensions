@@ -1,0 +1,28 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: demo
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+  storage:
+    size: 1Gi
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      # Demo only: lets the application user run SHOW on the extension paths.
+      postInitApplicationSQL:
+        - GRANT pg_read_all_settings TO app
+  monitoring:
+    customQueriesConfigMap:
+      - name: demo-custom-queries
+        key: queries.yaml
+  postgresql:
+    shared_preload_libraries:
+      - edb_wait_states
+    extensions:
+      - name: edb-wait-states
+        image:
+          reference: ${EXT_IMAGE}
+          pullPolicy: IfNotPresent
